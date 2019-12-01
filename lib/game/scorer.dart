@@ -16,16 +16,17 @@ class Scorer extends PositionComponent with ComposedComponent {
   ScorerGround _twoDigitGround;
   ScorerGround _threeDigitGround;
 
-  Scorer(Image spriteImage, Size screenSize){
+  Scorer(Image spriteImage, Size screenSize) {
     _screenSize = screenSize;
     _initSprites(spriteImage);
     _renderDefaultView();
-    }
-      
-  void increase() {
+  }
+
+  int increase() {
     _score++;
     _render();
     Flame.audio.play('point.wav');
+    return _score;
   }
 
   void reset() {
@@ -33,21 +34,18 @@ class Scorer extends PositionComponent with ComposedComponent {
     _render();
   }
 
-  void _render(){
+  void _render() {
     var scoreStr = _score.toString();
     var numberList = scoreStr.split("").reversed.toList();
-    for(var i = numberList.length - 1 ; i >= 0; i-- ) { 
+    for (var i = numberList.length - 1; i >= 0; i--) {
       var number = numberList[i];
-      if (i == 0)
-        _oneDigitGround.sprite = _digits[number.toString()];
-      if (i == 1)
-        _twoDigitGround.sprite = _digits[number.toString()];
-      if (i == 2)
-        _threeDigitGround.sprite = _digits[number.toString()];
+      if (i == 0) _oneDigitGround.sprite = _digits[number.toString()];
+      if (i == 1) _twoDigitGround.sprite = _digits[number.toString()];
+      if (i == 2) _threeDigitGround.sprite = _digits[number.toString()];
     }
   }
 
-  void _initSprites(Image spriteImage){
+  void _initSprites(Image spriteImage) {
     _digits = HashMap.from({
       "0": Sprite.fromImage(
         spriteImage,
@@ -55,7 +53,7 @@ class Scorer extends PositionComponent with ComposedComponent {
         height: SpriteDimensions.numberHeight,
         x: SpritesPostions.zeroNumberX,
         y: SpritesPostions.zeroNumberY,
-      ), 
+      ),
       "1": Sprite.fromImage(
         spriteImage,
         width: SpriteDimensions.numberWidth,
@@ -141,5 +139,8 @@ class Scorer extends PositionComponent with ComposedComponent {
 class ScorerGround extends SpriteComponent with Resizable {
   ScorerGround(Sprite sprite, [int multiplier = 1])
       : super.fromSprite(
-            ComponentDimensions.numberWidth * multiplier, ComponentDimensions.numberHeight, sprite);
+          ComponentDimensions.numberWidth * multiplier,
+          ComponentDimensions.numberHeight,
+          sprite,
+        );
 }

@@ -27,5 +27,8 @@ class Horizon extends PositionComponent with Resizable, ComposedComponent {
 class HorizonGround extends SpriteComponent with Resizable {
   HorizonGround(Sprite sprite, Size screenSize)
       : super.fromSprite(
-            screenSize.width, screenSize.height, sprite);
+          screenSize.width,
+          screenSize.height,
+          sprite,
+        );
 }

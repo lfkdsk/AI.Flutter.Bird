@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
@@ -5,10 +7,12 @@ import 'package:flutter_bird/game/bird.dart';
 import 'package:flutter_bird/game/bottom.dart';
 import 'package:flutter_bird/game/config.dart';
 import 'package:flutter_bird/game/gameover.dart';
+import 'package:flutter_bird/game/generation.dart';
 import 'package:flutter_bird/game/horizont.dart';
 import 'package:flutter_bird/game/scorer.dart';
 import 'package:flutter_bird/game/tube.dart';
 import 'package:flutter_bird/main.dart';
+import 'package:flutter_bird/game/data.dart' as Data;
 
 enum GameStatus { playing, waiting, gameOver }
 
@@ -18,13 +22,24 @@ class FlutterBirdGame extends BaseGame {
   Bird bird;
   Bottom bottom;
   GameOver gameOver;
+
   Tube firstTopTube;
   Tube firstBottomTube;
   Tube secondTopTube;
   Tube secondBottomTube;
   Tube thirdTopTube;
   Tube thirdBottomTube;
+
+  Generation _generation;
+  int nextPipe = Data.Game.PIPE_NUM;
   Image _spriteImage;
+  List<Tube> pipeUpperTube = List(Data.Game.PIPE_NUM);
+  List<Tube> pipeLowerTube = List(Data.Game.PIPE_NUM);
+  List<Tube> pipeTubes = [];
+  int score = 0;
+  int aliveNum = 0;
+  bool isGameOver = false;
+
   Scorer _scorer;
   GameStatus status = GameStatus.waiting;
   double xTubeOffset = 220;
@@ -45,84 +60,119 @@ class FlutterBirdGame extends BaseGame {
     thirdBottomTube = Tube(TubeType.bottom, spriteImage);
     thirdTopTube = Tube(TubeType.top, spriteImage, thirdBottomTube);
 
-    initPositions(spriteImage);
+    _generation = new Generation(bird);
+    pipeLowerTube = [firstBottomTube, secondBottomTube, thirdBottomTube];
+    pipeUpperTube = [firstTopTube, secondTopTube, thirdTopTube];
+    pipeTubes = [...pipeLowerTube, ...pipeUpperTube];
+    aliveNum = _generation.birds.length;
+
+    initGame();
 
     this
       ..add(horizon)
-      ..add(bird)
-      ..add(firstTopTube)
-      ..add(firstBottomTube)
-      ..add(secondTopTube)
-      ..add(secondBottomTube)
-      ..add(thirdTopTube)
-      ..add(thirdBottomTube)
-      ..add(bottom)
-      ..add(gameOver)
+//      ..add(bird)
+      ..add(firstTopTube)..add(firstBottomTube)..add(secondTopTube)..add(
+        secondBottomTube)..add(thirdTopTube)..add(thirdBottomTube)..add(bottom)
+//      ..add(gameOver)
       ..add(_scorer);
+
+    _generation.bindGeneration(this);
   }
 
-  void initPositions(Image spriteImage) {
-    bird.setPosition(ComponentPositions.birdX, ComponentPositions.birdY);
+  void initGame() {
+    this.score = 0;
+    this.aliveNum = _generation.birds.length;
+    this.nextPipe = Data.Game.PIPE_NUM;
+    this.isGameOver = false;
+    this._scorer.reset();
+    this.initPositions();
+  }
+
+  void initPositions() {
     bottom.setPosition(
-        0,
-        Singleton.instance.screenSize.height -
-            ComponentDimensions.bottomHeight);
-    firstBottomTube.setPosition(xTubeStart, 400);
-    firstTopTube.setPosition(xTubeStart, -250);
-    secondBottomTube.setPosition(xTubeStart + xTubeOffset, 400);
-    secondTopTube.setPosition(xTubeStart + xTubeOffset, -250);
-    thirdBottomTube.setPosition(xTubeStart + xTubeOffset * 2, 400);
-    thirdTopTube.setPosition(xTubeStart + xTubeOffset * 2, -250);
-    gameOver.ground.y = Singleton.instance.screenSize.height;
+      0,
+      Singleton.instance.screenSize.height - ComponentDimensions.bottomHeight,
+    );
+
+    for (int i = 0; i < pipeLowerTube.length; i++) {
+      pipeLowerTube[i].setPosition(xTubeStart + xTubeOffset * (i), 400);
+    }
+
+    for (int i = 0; i < pipeUpperTube.length; i++) {
+      pipeUpperTube[i].setPosition(xTubeStart + xTubeOffset * (i), -250);
+    }
+//    gameOver.ground.y = Singleton.instance.screenSize.height;
   }
 
   @override
   void update(double t) {
     if (status != GameStatus.playing) return;
 
-    bird.update(t * Speed.GameSpeed);
     bottom.update(t * Speed.GameSpeed);
-    firstBottomTube.update(t * Speed.GameSpeed);
-    firstTopTube.update(t * Speed.GameSpeed);
-    secondBottomTube.update(t * Speed.GameSpeed);
-    secondTopTube.update(t * Speed.GameSpeed);
-    thirdBottomTube.update(t * Speed.GameSpeed);
-    thirdTopTube.update(t * Speed.GameSpeed);
 
-    var birdRect = bird.ground.toRect();
-
-    if (check2ItemsCollision(birdRect, bottom.rect)) {
-      gameOverAction();
+    if (!this.isGameOver) {
+      this.movePipe(t);
+      this.findNextPipe();
     }
 
-    if (check2ItemsCollision(birdRect, firstBottomTube.ground.toRect())) {
-      gameOverAction();
-    }
-
-    if (check2ItemsCollision(birdRect, firstTopTube.ground.toRect())) {
-      gameOverAction();
-    }
-
-    if (check2ItemsCollision(birdRect, secondBottomTube.ground.toRect())) {
-      gameOverAction();
-    }
-
-    if (check2ItemsCollision(birdRect, secondTopTube.ground.toRect())) {
-      gameOverAction();
-    }
-
-    if (check2ItemsCollision(birdRect, thirdBottomTube.ground.toRect())) {
-      gameOverAction();
-    }
-
-    if (check2ItemsCollision(birdRect, thirdTopTube.ground.toRect())) {
-      gameOverAction();
-    }
+    this.moveBird(t);
+    this.checkGameOver();
 
     if (checkIfBirdCrossedTube(firstTopTube) ||
         checkIfBirdCrossedTube(secondTopTube) ||
         checkIfBirdCrossedTube(thirdTopTube)) {
-      _scorer.increase();
+      score = _scorer.increase();
+    }
+  }
+
+  void moveBird(double t) {
+    var next2Pipe = (this.nextPipe + 1) % Data.Game.PIPE_NUM;
+    for (int i = 0; i < Data.Generation.BIRD_NUM; i++) {
+      Bird bird = this._generation.birds[i];
+
+      if (bird == null) {
+        continue;
+      }
+
+      bird.jumpWithNetwork(
+        this.pipeUpperTube[this.nextPipe].ground.x - Data.Game.BIRD_INIT_X,
+        this.pipeUpperTube[this.nextPipe].ground.y,
+        this.pipeUpperTube[next2Pipe].ground.y,
+      );
+
+      if (bird.alive) {
+        bird.score = score;
+        var birdRect = bird.ground.toRect();
+
+        // Bird hit the land
+        if (check2ItemsCollision(birdRect, bottom.rect)) {
+          bird.alive = false;
+        }
+
+        if (bird.ground.y < 0 || bird.ground.y > Singleton.instance.screenSize.height) {
+          bird.alive = false;
+        }
+
+        for (var pipe in pipeTubes) {
+          if (check2ItemsCollision(birdRect, pipe.ground.toRect())) {
+            bird.alive = false;
+          }
+        }
+
+        if (!bird.alive) {
+          this.aliveNum--;
+          bird.destroy();
+        }
+      } else if (!this.isGameOver) {
+        bird.ground.x -= Data.Game.MOVE_SPEED;
+      }
+
+      // Prevent the bird from falling below the lower edge of the canvas
+//      if (bird.y + Data.Game.BIRD_RADIUS >= Data.Game.LAND_Y) {
+//        bird.ground.y = (Data.Game.LAND_Y - Data.Game.BIRD_RADIUS).toDouble();
+//      }
+
+      bird.update(t * Speed.GameSpeed);
     }
   }
 
@@ -131,8 +181,8 @@ class FlutterBirdGame extends BaseGame {
       Flame.audio.play('hit.wav');
       Flame.audio.play('die.wav');
       status = GameStatus.gameOver;
-      gameOver.ground.y =
-          (Singleton.instance.screenSize.height - gameOver.ground.height) / 2;
+//      gameOver.ground.y =
+//          (Singleton.instance.screenSize.height - gameOver.ground.height) / 2;
     }
   }
 
@@ -154,16 +204,16 @@ class FlutterBirdGame extends BaseGame {
     switch (status) {
       case GameStatus.waiting:
         status = GameStatus.playing;
-        bird.jump();
+//        bird.jump();
         bottom.move();
         break;
       case GameStatus.gameOver:
         status = GameStatus.waiting;
-        initPositions(_spriteImage);
+        initPositions();
         _scorer.reset();
         break;
       case GameStatus.playing:
-        bird.jump();
+//        bird.jump();
         break;
       default:
     }
@@ -172,5 +222,37 @@ class FlutterBirdGame extends BaseGame {
   bool check2ItemsCollision(Rect item1, Rect item2) {
     var intersectedRect = item1.intersect(item2);
     return intersectedRect.width > 0 && intersectedRect.height > 0;
+  }
+
+
+  void movePipe(double t) {
+    for (var pipe in pipeTubes) {
+      pipe.update(t * Speed.GameSpeed);
+    }
+  }
+
+  void findNextPipe() {
+    this.nextPipe = Data.Game.PIPE_NUM;
+
+    double minX = double.maxFinite;
+    for (int i = 0; i < Data.Game.PIPE_NUM; i++) {
+      var x = pipeUpperTube[i].ground.x;
+      if (x >= Data.Game.BIRD_INIT_X - Data.Game.BIRD_RADIUS && x < minX) {
+        minX = min(minX, x);
+        this.nextPipe = i;
+      }
+    }
+
+    if (nextPipe >= Data.Game.PIPE_NUM) {
+      this.nextPipe = 0;
+    }
+  }
+
+  void checkGameOver() {
+    if (this.aliveNum == 0 && !this.isGameOver) {
+      this.isGameOver = true;
+      this._generation.nextGen();
+      this.initGame();
+    }
   }
 }
