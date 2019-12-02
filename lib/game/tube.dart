@@ -7,6 +7,7 @@ import 'package:flame/components/resizable.dart';
 import 'package:flame/sprite.dart';
 import 'package:flutter_bird/game/config.dart';
 import 'package:flutter_bird/main.dart';
+import 'package:flutter_bird/game/data.dart' as Data;
 
 enum TubeType { top, bottom }
 
@@ -16,13 +17,16 @@ class Tube extends PositionComponent with Resizable, ComposedComponent {
   TubeType _type;
   bool _hasBeenOnScreen = false;
   double _holeRange = 150;
+  Random _random = new Random.secure();
+
   double get _topTubeOffset => Singleton.instance.screenSize.height * 0.15;
+
   double get _bottomTubeOffset => Singleton.instance.screenSize.height * 0.5;
 
-  bool get isOnScreen => 
-    this.ground.x + ComponentDimensions.tubeWidth > 0 && 
-    this.ground.x < Singleton.instance.screenSize.width;
-  
+  bool get isOnScreen =>
+      this.ground.x + ComponentDimensions.tubeWidth > 0 &&
+      this.ground.x < Singleton.instance.screenSize.width;
+
   bool crossedBird = false;
 
   Tube(TubeType type, Image spriteImage, [Tube bottomTube]) {
@@ -53,36 +57,40 @@ class Tube extends PositionComponent with Resizable, ComposedComponent {
     var baseRect = super.toRect();
     if (_type == TubeType.bottom) {
       return baseRect;
-    }
-    else {
+    } else {
       return Rect.fromLTWH(
-        baseRect.left - ComponentDimensions.tubeWidth, 
-        baseRect.top - ComponentDimensions.tubeHeight, 
-        baseRect.width, 
-        baseRect.height
-      );
+          baseRect.left - ComponentDimensions.tubeWidth,
+          baseRect.top - ComponentDimensions.tubeHeight,
+          baseRect.width,
+          baseRect.height);
     }
   }
 
   void setPosition(double x, double y) {
     _hasBeenOnScreen = false;
     crossedBird = false;
-    this.ground.x = x + (_type == TubeType.top ? ComponentDimensions.tubeWidth : 0);
+    this.ground.x =
+        x + (_type == TubeType.top ? ComponentDimensions.tubeWidth : 0);
     setY();
   }
 
-  void update(double t){
-      if (!_hasBeenOnScreen && isOnScreen)
-        _hasBeenOnScreen = true;
-      if (_hasBeenOnScreen && !isOnScreen)
-      {
-        print("Moved");
-        this.ground.x = Singleton.instance.screenSize.width * 1.5;
-        setY();
-        crossedBird = false;
-        _hasBeenOnScreen = false;
+  void update(double t) {
+    if (!_hasBeenOnScreen && isOnScreen) _hasBeenOnScreen = true;
+    if (_hasBeenOnScreen && !isOnScreen) {
+      print("Moved");
+//        (Data.animation.SCREEN_WIDTH + Data.game.PIPE_WIDTH) * 0.5 * Data.game.PIPE_NUM - Data.game.PIPE_WIDTH
+      this.ground.x = Singleton.instance.screenSize.width * 1.5;
+      setY();
+      crossedBird = false;
+      _hasBeenOnScreen = false;
+
+      if (_bottomTube != null) {
+        int randomX = _random.nextInt(20);
+        this.ground.x += randomX;
+        _bottomTube.ground.x += randomX;
       }
-      this.ground.x -= t * Speed.GroundSpeed;
+    }
+    this.ground.x -= t * Speed.GroundSpeed;
   }
 
   void setY() {
@@ -100,25 +108,22 @@ class TubeGround extends SpriteComponent with Resizable {
   TubeType _type;
 
   TubeGround(Sprite sprite, TubeType type)
-      : super.fromSprite(
-            ComponentDimensions.tubeWidth, ComponentDimensions.tubeHeight, sprite)
-  {
+      : super.fromSprite(ComponentDimensions.tubeWidth,
+            ComponentDimensions.tubeHeight, sprite) {
     _type = type;
   }
-  
+
   @override
   Rect toRect() {
     var baseRect = super.toRect();
     if (_type == TubeType.bottom) {
       return baseRect;
-    }
-    else {
+    } else {
       return Rect.fromLTWH(
-        baseRect.left - ComponentDimensions.tubeWidth, 
-        baseRect.top - ComponentDimensions.tubeHeight, 
-        baseRect.width, 
-        baseRect.height
-      );
+          baseRect.left - ComponentDimensions.tubeWidth,
+          baseRect.top - ComponentDimensions.tubeHeight,
+          baseRect.width,
+          baseRect.height);
     }
   }
 }

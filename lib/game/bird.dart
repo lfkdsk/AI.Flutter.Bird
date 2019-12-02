@@ -10,6 +10,8 @@ import 'package:flutter_bird/game/config.dart';
 import 'package:flutter_bird/game/network.dart';
 import 'package:flutter_bird/game/data.dart' as Data;
 import 'package:flutter_bird/main.dart';
+import 'dart:math';
+import 'dart:core';
 
 enum BirdStatus { waiting, flying }
 enum BirdFlyingStatus { up, down, none }
@@ -109,9 +111,11 @@ class Bird extends PositionComponent with ComposedComponent {
 //        this.ground.angle += _stepDiff;
 //        this.ground.y += t * 100 * getSpeedRatio(flyingStatus, _counter);
 //      }
-      this.ground.showAnimation = this.speed > 0 ? true : false;
+      this.ground.showAnimation = this.speed < 0 ? true : false;
     }
 
+    this.ground.speed = speed;
+    this.ground.angle = min(speed * 7, 90) * pi / 180;
     this.ground.y += this.speed;
     this.ground.update(t);
   }
@@ -138,10 +142,11 @@ class Bird extends PositionComponent with ComposedComponent {
   void jumpWithNetwork(pipeDis, pipeUpper, pip2Upper) {
     if (netWork.getOutput(
       pipeDis / Singleton.instance.screenSize.width,
-      (this.ground.y - SpriteDimensions.birdHeight - pipeUpper) / Singleton.instance.screenSize.height,
+      (this.ground.y - 100 - pipeUpper) / Singleton.instance.screenSize.height,
       0,
     )) {
       this.speed = -Data.Game.FLY_SPEED;
+      this.ground.angle = 0;
     }
 
     this.speed += Data.Game.GRAVITY;
@@ -150,6 +155,7 @@ class Bird extends PositionComponent with ComposedComponent {
 
 class BirdGround extends AnimationComponent {
   bool showAnimation = true;
+  double speed = 0;
 
   BirdGround(Animation animation)
       : super(
@@ -163,5 +169,10 @@ class BirdGround extends AnimationComponent {
     if (showAnimation) {
       super.update(t);
     }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
   }
 }

@@ -37,7 +37,7 @@ class Animation {
 
 class Game {
   static const PIPE_NUM = 3;
-  static const PIPE_WIDTH = 52;
+  static const PIPE_WIDTH = 78;
   static const PIPE_HEIGHT = 500;
   static const PIPE_MIN_Y = 100;
   static const PIPE_MAX_Y = 305;

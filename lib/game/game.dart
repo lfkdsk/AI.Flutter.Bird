@@ -70,10 +70,13 @@ class FlutterBirdGame extends BaseGame {
 
     this
       ..add(horizon)
-//      ..add(bird)
-      ..add(firstTopTube)..add(firstBottomTube)..add(secondTopTube)..add(
-        secondBottomTube)..add(thirdTopTube)..add(thirdBottomTube)..add(bottom)
-//      ..add(gameOver)
+      ..add(firstTopTube)
+      ..add(firstBottomTube)
+      ..add(secondTopTube)
+      ..add(secondBottomTube)
+      ..add(thirdTopTube)
+      ..add(thirdBottomTube)
+      ..add(bottom)
       ..add(_scorer);
 
     _generation.bindGeneration(this);
@@ -149,7 +152,8 @@ class FlutterBirdGame extends BaseGame {
           bird.alive = false;
         }
 
-        if (bird.ground.y < 0 || bird.ground.y > Singleton.instance.screenSize.height) {
+        if (bird.ground.y < 0 ||
+            bird.ground.y > Singleton.instance.screenSize.height) {
           bird.alive = false;
         }
 
@@ -223,7 +227,6 @@ class FlutterBirdGame extends BaseGame {
     var intersectedRect = item1.intersect(item2);
     return intersectedRect.width > 0 && intersectedRect.height > 0;
   }
-
 
   void movePipe(double t) {
     for (var pipe in pipeTubes) {
