@@ -85,7 +85,7 @@ class FlutterBirdGame extends BaseGame {
   void initGame() {
     this.score = 0;
     this.aliveNum = _generation.birds.length;
-    this.nextPipe = Data.Game.PIPE_NUM;
+    this.nextPipe = 0;
     this.isGameOver = false;
     this._scorer.reset();
     this.initPositions();
